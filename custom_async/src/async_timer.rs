@@ -1,11 +1,11 @@
 use crate::executor::subscribe_for_wake;
+use log::debug;
 use std::future::Future;
 use std::os::unix::prelude::AsRawFd;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
 use timerfd::{SetTimeFlags, TimerFd, TimerState};
-use log::debug;
 
 pub struct TimerFuture {
     timer_fd: TimerFd,
