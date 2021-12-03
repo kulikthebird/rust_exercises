@@ -1,21 +1,21 @@
 use futures::future::Future;
 use log::debug;
 use std::pin::Pin;
-use std::sync::mpsc::SyncSender;
+use std::sync::mpsc::Sender;
 use std::task::{RawWaker, RawWakerVTable, Waker};
 
 pub type TaskID = u64;
 
 pub struct Task<'a> {
     pub future: Pin<Box<dyn Future<Output = ()> + 'a>>,
-    task_sender: SyncSender<TaskID>,
+    task_sender: Sender<TaskID>,
     pub leak_box: bool,
 }
 
 impl<'a> Task<'a> {
     pub fn from_boxed_future(
         future: Pin<Box<dyn Future<Output = ()> + 'a>>,
-        task_sender: SyncSender<TaskID>,
+        task_sender: Sender<TaskID>,
         leak_box: bool,
     ) -> Task<'a> {
         Task {

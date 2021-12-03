@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::RawFd;
 use std::pin::Pin;
-use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Mutex;
 use std::task::Waker;
 use std::task::{Context, Poll};
@@ -33,14 +33,14 @@ pub fn subscribe_for_wake(waker: Waker, tracked_fd: RawFd) {
 }
 
 pub struct Executor<'a> {
-    task_sender: SyncSender<TaskID>,
+    task_sender: Sender<TaskID>,
     ready_queue: Receiver<TaskID>,
     pending_tasks: HashMap<TaskID, Box<Task<'a>>>,
 }
 
 impl<'a> Executor<'a> {
-    pub fn new(tasks_queue_bound: usize) -> Executor<'a> {
-        let (task_sender, ready_queue) = sync_channel(tasks_queue_bound);
+    pub fn new() -> Executor<'a> {
+        let (task_sender, ready_queue) = channel();
         Executor {
             task_sender,
             ready_queue,
@@ -93,7 +93,9 @@ impl<'a> Executor<'a> {
             self.task_sender.clone(),
             false,
         ));
-        self.process_task(task);
+        let waker = unsafe { task.new_waker() };
+        self.pending_tasks.insert(task.generate_task_id(), task);
+        waker.wake();
     }
 
     pub fn block_on(&mut self, mut future: impl Future<Output = ()> + 'a) {
